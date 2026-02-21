@@ -10,5 +10,11 @@ export default [
     route("/admin/networks", "pages/admin/NetworksPage.tsx"),
     route("/admin/stacks", "pages/admin/StacksPage.tsx"),
     route("/admin/audit", "pages/admin/AuditLogPage.tsx"),
+    route("/admin/llm/providers", "pages/admin/llm/ProvidersPage.tsx"),
+    route("/admin/llm/models", "pages/admin/llm/ModelsPage.tsx"),
+    route("/admin/llm/models/:id", "pages/admin/llm/ModelDetailPage.tsx"),
+    route("/admin/llm/runtimes", "pages/admin/llm/RuntimesPage.tsx"),
+    route("/admin/llm/runtimes/:id", "pages/admin/llm/RuntimeDetailPage.tsx"),
+    route("/admin/llm/jobs", "pages/admin/llm/JobsPage.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -4,6 +4,13 @@
  */
 import Chip from "@mui/material/Chip";
 import type { ContainerClass, ContainerPolicy } from "~/api/admin";
+import type {
+  ModelStatus,
+  RuntimeStatus,
+  DownloadJobStatus,
+  ArtifactFormat,
+  ProviderType,
+} from "~/api/llm";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Container class chip
@@ -84,4 +91,81 @@ export function PolicyChip({ value }: { value: ContainerPolicy }) {
   return (
     <Chip label={value} size="small" color={POLICY_COLOR[value] ?? "default"} variant="outlined" />
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLM — Model status chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MODEL_STATUS_COLOR: Record<ModelStatus, "success" | "info" | "error" | "warning"> = {
+  available: "success",
+  downloading: "info",
+  failed: "error",
+  deleting: "warning",
+};
+
+export function ModelStatusChip({ value }: { value: ModelStatus }) {
+  return <Chip label={value} size="small" color={MODEL_STATUS_COLOR[value] ?? "default"} />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLM — Runtime status chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RUNTIME_STATUS_COLOR: Record<RuntimeStatus, "success" | "info" | "error" | "warning" | "default"> = {
+  creating: "info",
+  starting: "info",
+  running: "success",
+  stopping: "warning",
+  stopped: "default",
+  error: "error",
+};
+
+export function RuntimeStatusChip({ value }: { value: RuntimeStatus }) {
+  return <Chip label={value} size="small" color={RUNTIME_STATUS_COLOR[value] ?? "default"} />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLM — Download job status chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const JOB_STATUS_COLOR: Record<DownloadJobStatus, "success" | "info" | "error" | "warning" | "default"> = {
+  queued: "default",
+  running: "info",
+  success: "success",
+  failed: "error",
+  canceled: "warning",
+};
+
+export function JobStatusChip({ value }: { value: DownloadJobStatus }) {
+  return <Chip label={value} size="small" color={JOB_STATUS_COLOR[value] ?? "default"} variant="outlined" />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLM — Artifact format chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FORMAT_COLOR: Record<ArtifactFormat, "primary" | "secondary" | "default"> = {
+  safetensors: "primary",
+  gguf: "secondary",
+  other: "default",
+};
+
+export function FormatChip({ value }: { value: ArtifactFormat }) {
+  return <Chip label={value} size="small" color={FORMAT_COLOR[value] ?? "default"} variant="outlined" />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLM — Provider type chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ENGINE_COLOR: Record<ProviderType, "primary" | "secondary" | "info" | "warning"> = {
+  vllm: "primary",
+  llamacpp: "secondary",
+  tgi: "info",
+  ollama: "warning",
+};
+
+export function EngineChip({ value }: { value: ProviderType }) {
+  return <Chip label={value} size="small" color={ENGINE_COLOR[value] ?? "default"} variant="filled" />;
 }

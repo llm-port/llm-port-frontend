@@ -40,6 +40,11 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import WidgetsIcon from "@mui/icons-material/Widgets";
 import HubIcon from "@mui/icons-material/Hub";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import LlmIcon from "~/components/LlmIcon";
+import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const DRAWER_WIDTH_OPEN = 240;
 const DRAWER_WIDTH_CLOSED = 64;
@@ -77,6 +82,17 @@ const NAV: NavEntry[] = [
       { to: "/admin/images", label: "Images", icon: <ViewInArIcon /> },
       { to: "/admin/networks", label: "Networks", icon: <HubIcon /> },
       { to: "/admin/stacks", label: "Stacks", icon: <LayersIcon /> },
+    ],
+  },
+  {
+    kind: "group",
+    label: "LLM",
+    icon: <LlmIcon />,
+    children: [
+      { to: "/admin/llm/providers", label: "Providers", icon: <AccountTreeIcon /> },
+      { to: "/admin/llm/models", label: "Models", icon: <ModelTrainingIcon /> },
+      { to: "/admin/llm/runtimes", label: "Runtimes", icon: <RocketLaunchIcon /> },
+      { to: "/admin/llm/jobs", label: "Jobs", icon: <DownloadIcon /> },
     ],
   },
   { kind: "leaf", to: "/admin/audit", label: "Audit Log", icon: <ReceiptLongIcon /> },

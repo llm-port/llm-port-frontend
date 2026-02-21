@@ -8,6 +8,7 @@ import { useNavigate } from "react-router";
 import {
   containers,
   networks,
+  images,
   type ContainerClass,
   type ContainerPolicy,
   type PortBinding,
@@ -15,6 +16,7 @@ import {
 import { ClassChip, PolicyChip } from "~/components/Chips";
 
 import Alert from "@mui/material/Alert";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -92,10 +94,20 @@ export default function CreateContainerPage() {
   // ── Network options ───────────────────────────────────────────────────────
   const [networkOptions, setNetworkOptions] = useState<{ id: string; name: string }[]>([]);
 
+  // ── Image options (local Docker images) ─────────────────────────────────
+  const [imageOptions, setImageOptions] = useState<string[]>([]);
+
   useEffect(() => {
     networks
       .list()
       .then((nets) => setNetworkOptions(nets.map((n) => ({ id: n.id, name: n.name }))))
+      .catch(() => {});
+    images
+      .list()
+      .then((imgs) => {
+        const tags = imgs.flatMap((i) => i.repo_tags).filter((t) => t && t !== "<none>:<none>");
+        setImageOptions([...new Set(tags)].sort());
+      })
       .catch(() => {});
   }, []);
 
@@ -201,15 +213,21 @@ export default function CreateContainerPage() {
                 <Paper variant="outlined" sx={{ p: 3 }}>
                   <SectionHeader>Image &amp; Identity</SectionHeader>
                   <Stack spacing={2}>
-                    <TextField
-                      label="Image"
-                      required
-                      fullWidth
-                      placeholder="nginx:latest"
-                      value={image}
-                      onChange={(e) => setImage(e.target.value)}
-                      helperText="Name and tag of the image to run."
-                      autoFocus
+                    <Autocomplete
+                      freeSolo
+                      options={imageOptions}
+                      inputValue={image}
+                      onInputChange={(_, v) => setImage(v)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Image"
+                          required
+                          placeholder="nginx:latest"
+                          helperText="Name and tag of the image to run. Suggestions from local images."
+                          autoFocus
+                        />
+                      )}
                     />
                     <TextField
                       label="Container Name"
