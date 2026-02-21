@@ -33,6 +33,25 @@ export interface ContainerDetail extends ContainerSummary {
   raw: Record<string, unknown>;
 }
 
+export interface PortBinding {
+  host_port: string;
+  container_port: string;
+}
+
+export interface CreateContainerPayload {
+  image: string;
+  name?: string;
+  container_class?: ContainerClass;
+  owner_scope?: string;
+  policy?: ContainerPolicy;
+  auto_start?: boolean;
+  ports?: PortBinding[];
+  env?: string[];
+  cmd?: string[];
+  network?: string;
+  volumes?: string[];
+}
+
 export interface ExecToken {
   exec_id: string;
 }
@@ -174,6 +193,12 @@ export const containers = {
   list(filterClass?: ContainerClass) {
     const qs = filterClass ? `?class=${filterClass}` : "";
     return request<ContainerSummary[]>(`/containers/${qs}`);
+  },
+  create(payload: CreateContainerPayload) {
+    return request<ContainerSummary>("/containers/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
   get(id: string) {
     return request<ContainerDetail>(`/containers/${id}`);

@@ -1,7 +1,7 @@
 /**
  * Admin → Networks page.
  * Lists Docker networks, allows creating/deleting user networks, and
- * shows system networks as read-only (stats only).
+ * shows system networks as read-only (stats only). Table powered by DataTable.
  */
 import { useState, useEffect } from "react";
 import {
@@ -10,6 +10,7 @@ import {
   type NetworkDetail,
   type CreateNetworkPayload,
 } from "~/api/admin";
+import { DataTable, type ColumnDef, type ColumnFilter } from "~/components/DataTable";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -28,24 +29,15 @@ import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
-import CircularProgress from "@mui/material/CircularProgress";
 
-import RefreshIcon from "@mui/icons-material/Refresh";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LockIcon from "@mui/icons-material/Lock";
-import HubIcon from "@mui/icons-material/Hub";
 
 export default function NetworksPage() {
   const [data, setData] = useState<NetworkSummary[]>([]);
@@ -71,6 +63,9 @@ export default function NetworksPage() {
 
   // Delete state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Type filter
+  const [typeFilter, setTypeFilter] = useState<string[]>(["system", "user"]);
 
   async function load() {
     setLoading(true);
@@ -136,157 +131,186 @@ export default function NetworksPage() {
     }
   }
 
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {/* Fixed header */}
-      <Box sx={{ flexShrink: 0 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <HubIcon color="primary" />
-            <Typography variant="h5">Networks</Typography>
-          </Stack>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => setShowCreate(true)}
-            >
-              Create Network
-            </Button>
-            <Tooltip title="Refresh">
-              <IconButton onClick={load} size="small">
-                <RefreshIcon />
+  const columns: ColumnDef<NetworkSummary>[] = [
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      searchValue: (n) => n.name + " " + n.id,
+      render: (n) => (
+        <Box>
+          <Typography
+            variant="body2"
+            fontWeight={600}
+            fontFamily="monospace"
+            fontSize="0.85rem"
+            sx={{ color: "primary.light" }}
+          >
+            {n.name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" fontFamily="monospace">
+            {n.id.slice(0, 12)}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      key: "driver",
+      label: "Driver",
+      searchValue: (n) => n.driver ?? "",
+      render: (n) => <Chip label={n.driver || "—"} size="small" variant="outlined" />,
+    },
+    {
+      key: "scope",
+      label: "Scope",
+      sortable: true,
+      searchValue: (n) => n.scope,
+      render: (n) => (
+        <Typography variant="body2" fontSize="0.85rem">
+          {n.scope}
+        </Typography>
+      ),
+    },
+    {
+      key: "internal",
+      label: "Internal",
+      align: "center",
+      render: (n) =>
+        n.internal ? (
+          <Chip label="Yes" size="small" color="info" variant="outlined" />
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            —
+          </Typography>
+        ),
+    },
+    {
+      key: "containers",
+      label: "Containers",
+      align: "center",
+      sortable: true,
+      sortValue: (n) => n.container_count,
+      render: (n) => (
+        <Chip
+          label={n.container_count}
+          size="small"
+          color={n.container_count > 0 ? "primary" : "default"}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      key: "type",
+      label: "Type",
+      align: "center",
+      render: (n) =>
+        n.is_system ? (
+          <Chip icon={<LockIcon />} label="System" size="small" color="warning" variant="filled" />
+        ) : (
+          <Chip label="User" size="small" color="success" variant="outlined" />
+        ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      align: "right",
+      render: (n) => {
+        const busy = actionLoading === n.id;
+        return (
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+            <Tooltip title="Inspect">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleInspect(n.id);
+                }}
+                disabled={inspectLoading}
+              >
+                <InfoOutlinedIcon fontSize="small" />
               </IconButton>
             </Tooltip>
+            {!n.is_system && (
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(n.id, n.name);
+                  }}
+                  disabled={busy}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
           </Stack>
-        </Stack>
-      </Box>
+        );
+      },
+    },
+  ];
 
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress size={32} />
-        </Box>
-      )}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+  const columnFilters: ColumnFilter[] = [
+    {
+      label: "Type",
+      value: "",
+      multi: true,
+      multiValue: typeFilter,
+      onMultiChange: setTypeFilter,
+      options: [
+        { label: "System", value: "system" },
+        { label: "User", value: "user" },
+      ],
+      minWidth: 140,
+    },
+  ];
 
-      {!loading && !error && (
-        <TableContainer component={Paper} variant="outlined" sx={{ flexGrow: 1, overflow: "auto" }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Driver</TableCell>
-                <TableCell>Scope</TableCell>
-                <TableCell align="center">Internal</TableCell>
-                <TableCell align="center">Containers</TableCell>
-                <TableCell align="center">Type</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 4, color: "text.secondary" }}>
-                    No networks found.
-                  </TableCell>
-                </TableRow>
-              )}
-              {data.map((n) => {
-                const busy = actionLoading === n.id;
-                return (
-                  <TableRow key={n.id} hover>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        fontWeight={600}
-                        fontFamily="monospace"
-                        fontSize="0.85rem"
-                        sx={{ color: "primary.light" }}
-                      >
-                        {n.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" fontFamily="monospace">
-                        {n.id.slice(0, 12)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={n.driver || "—"} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontSize="0.85rem">{n.scope}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      {n.internal ? (
-                        <Chip label="Yes" size="small" color="info" variant="outlined" />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">—</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={n.container_count}
-                        size="small"
-                        color={n.container_count > 0 ? "primary" : "default"}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      {n.is_system ? (
-                        <Chip
-                          icon={<LockIcon />}
-                          label="System"
-                          size="small"
-                          color="warning"
-                          variant="filled"
-                        />
-                      ) : (
-                        <Chip label="User" size="small" color="success" variant="outlined" />
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Inspect">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleInspect(n.id)}
-                            disabled={inspectLoading}
-                          >
-                            <InfoOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {!n.is_system && (
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(n.id, n.name)}
-                              disabled={busy}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+  // Apply type filter client-side
+  const filteredData = data.filter((n) =>
+    typeFilter.includes(n.is_system ? "system" : "user"),
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <DataTable
+        title="Networks"
+        columns={columns}
+        rows={filteredData}
+        rowKey={(n) => n.id}
+        loading={loading}
+        error={error}
+        emptyMessage="No networks found."
+        onRefresh={load}
+        searchPlaceholder="Search name or ID…"
+        columnFilters={columnFilters}
+        toolbarActions={
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => setShowCreate(true)}
+          >
+            Create Network
+          </Button>
+        }
+      />
 
       {/* ── Create Network Dialog ────────────────────────────────── */}
       <Dialog
         open={showCreate}
-        onClose={() => { setShowCreate(false); setCreateError(null); }}
+        onClose={() => {
+          setShowCreate(false);
+          setCreateError(null);
+        }}
         maxWidth="sm"
         fullWidth
       >
         <form onSubmit={handleCreate}>
           <DialogTitle>Create Network</DialogTitle>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "8px !important" }}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "8px !important" }}
+          >
             <TextField
               label="Network Name"
               required
@@ -338,8 +362,19 @@ export default function NetworksPage() {
             {createError && <Alert severity="error">{createError}</Alert>}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => { setShowCreate(false); setCreateError(null); }}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={creating || !createForm.name.trim()}>
+            <Button
+              onClick={() => {
+                setShowCreate(false);
+                setCreateError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={creating || !createForm.name.trim()}
+            >
               {creating ? "Creating…" : "Create"}
             </Button>
           </DialogActions>
@@ -347,16 +382,10 @@ export default function NetworksPage() {
       </Dialog>
 
       {/* ── Inspect Network Dialog ───────────────────────────────── */}
-      <Dialog
-        open={!!inspectNet}
-        onClose={() => setInspectNet(null)}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={!!inspectNet} onClose={() => setInspectNet(null)} maxWidth="md" fullWidth>
         {inspectNet && (
           <>
             <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <HubIcon color="primary" />
               {inspectNet.name}
               {inspectNet.is_system && (
                 <Chip icon={<LockIcon />} label="System" size="small" color="warning" sx={{ ml: 1 }} />
@@ -370,15 +399,17 @@ export default function NetworksPage() {
                     Details
                   </Typography>
                   <Stack spacing={0.5}>
-                    {[
-                      ["ID", inspectNet.id],
-                      ["Driver", inspectNet.driver],
-                      ["Scope", inspectNet.scope],
-                      ["Subnet", inspectNet.subnet || "—"],
-                      ["Gateway", inspectNet.gateway || "—"],
-                      ["Internal", inspectNet.internal ? "Yes" : "No"],
-                      ["Created", inspectNet.created],
-                    ].map(([k, v]) => (
+                    {(
+                      [
+                        ["ID", inspectNet.id],
+                        ["Driver", inspectNet.driver],
+                        ["Scope", inspectNet.scope],
+                        ["Subnet", inspectNet.subnet || "—"],
+                        ["Gateway", inspectNet.gateway || "—"],
+                        ["Internal", inspectNet.internal ? "Yes" : "No"],
+                        ["Created", inspectNet.created],
+                      ] as [string, string][]
+                    ).map(([k, v]) => (
                       <Stack key={k} direction="row" spacing={2}>
                         <Typography
                           variant="body2"
@@ -395,7 +426,6 @@ export default function NetworksPage() {
                   </Stack>
                 </Paper>
 
-                {/* Labels */}
                 {Object.keys(inspectNet.labels).length > 0 && (
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -411,7 +441,6 @@ export default function NetworksPage() {
                   </Paper>
                 )}
 
-                {/* Connected containers */}
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Connected Containers ({inspectNet.containers.length})
@@ -428,7 +457,10 @@ export default function NetworksPage() {
                             primary={c.name || c.id.slice(0, 12)}
                             secondary={`${c.ipv4_address || "no IP"} · ${c.mac_address || "no MAC"}`}
                             primaryTypographyProps={{ fontFamily: "monospace", fontSize: "0.85rem" }}
-                            secondaryTypographyProps={{ fontFamily: "monospace", fontSize: "0.75rem" }}
+                            secondaryTypographyProps={{
+                              fontFamily: "monospace",
+                              fontSize: "0.75rem",
+                            }}
                           />
                         </ListItem>
                       ))}
@@ -436,7 +468,6 @@ export default function NetworksPage() {
                   )}
                 </Paper>
 
-                {/* Options */}
                 {Object.keys(inspectNet.options).length > 0 && (
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
