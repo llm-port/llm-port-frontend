@@ -4,7 +4,8 @@
  */
 import { useState, useEffect } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router";
-import { rootMode, type RootModeStatus } from "~/api/admin";
+import { adminUsers, rootMode, type RootModeStatus } from "~/api/admin";
+import { auth } from "~/api/auth";
 
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -34,7 +35,6 @@ import LayersIcon from "@mui/icons-material/Layers";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import SecurityIcon from "@mui/icons-material/Security";
-import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -45,6 +45,7 @@ import LlmIcon from "~/components/LlmIcon";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import DownloadIcon from "@mui/icons-material/Download";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 const DRAWER_WIDTH_OPEN = 240;
 const DRAWER_WIDTH_CLOSED = 64;
@@ -119,6 +120,9 @@ export default function AdminLayout() {
   const [reason, setReason] = useState("");
   const [duration, setDuration] = useState(600);
   const [error, setError] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
+  const [isSuperuser, setIsSuperuser] = useState(false);
 
   /* Drawer open/collapsed state */
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -139,6 +143,20 @@ export default function AdminLayout() {
     setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
   }
 
+  async function ensureAuthenticated() {
+    try {
+      await auth.me();
+      const access = await adminUsers.meAccess();
+      setCurrentUserEmail(access.email);
+      setIsSuperuser(access.is_superuser);
+      setAuthReady(true);
+    } catch {
+      navigate(`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`, {
+        replace: true,
+      });
+    }
+  }
+
   async function loadRootStatus() {
     try {
       const s = await rootMode.status();
@@ -149,10 +167,23 @@ export default function AdminLayout() {
   }
 
   useEffect(() => {
+    void ensureAuthenticated();
+  }, []);
+
+  useEffect(() => {
+    if (!authReady || !isSuperuser) return;
     loadRootStatus();
     const interval = setInterval(loadRootStatus, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [authReady, isSuperuser]);
+
+  async function handleLogout() {
+    try {
+      await auth.logout();
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  }
 
   async function handleActivateRoot(e: React.FormEvent) {
     e.preventDefault();
@@ -174,6 +205,15 @@ export default function AdminLayout() {
 
   const isRootActive = rootStatus?.active ?? false;
   const currentDrawerWidth = drawerOpen ? DRAWER_WIDTH_OPEN : DRAWER_WIDTH_CLOSED;
+  const navEntries = NAV;
+
+  if (!authReady) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+        <Typography color="text.secondary">Checking session…</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -203,20 +243,24 @@ export default function AdminLayout() {
             justifyContent: drawerOpen ? "flex-start" : "center",
           }}
         >
-          <Box
+          <IconButton
+            size="small"
+            onClick={() => setDrawerOpen((o) => !o)}
             sx={{
               width: 36,
               height: 36,
               borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               flexShrink: 0,
               background: "linear-gradient(135deg, #7c4dff 0%, #00e5ff 100%)",
+              color: "#fff",
+              "&:hover": {
+                opacity: 0.9,
+                background: "linear-gradient(135deg, #7c4dff 0%, #00e5ff 100%)",
+              },
             }}
           >
-            <AdminPanelSettingsIcon sx={{ fontSize: 20, color: "#fff" }} />
-          </Box>
+            <AdminPanelSettingsIcon sx={{ fontSize: 20 }} />
+          </IconButton>
           {drawerOpen && (
             <Typography variant="h6" noWrap sx={{ fontSize: "1rem", color: "primary.light" }}>
               AIrgap Console
@@ -226,7 +270,7 @@ export default function AdminLayout() {
 
         {/* Nav items */}
         <List sx={{ px: drawerOpen ? 1 : 0.5, mt: 0.5, flexGrow: 1 }}>
-          {NAV.map((entry) => {
+          {navEntries.map((entry) => {
             if (entry.kind === "leaf") {
               return (
                 <ListItem key={entry.to} disablePadding sx={{ mb: 0.5 }}>
@@ -344,11 +388,53 @@ export default function AdminLayout() {
           })}
         </List>
 
-        {/* Collapse / Expand toggle at bottom */}
-        <Box sx={{ display: "flex", justifyContent: drawerOpen ? "flex-end" : "center", p: 1 }}>
-          <IconButton size="small" onClick={() => setDrawerOpen((o) => !o)}>
-            {drawerOpen ? <ChevronLeftIcon /> : <MenuIcon />}
-          </IconButton>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isSuperuser && drawerOpen ? "space-between" : "flex-end",
+            px: drawerOpen ? 1 : 0.5,
+            pb: 0.5,
+            gap: 0.5,
+          }}
+        >
+          {isSuperuser && (
+            <Tooltip title={drawerOpen ? "" : "Settings"} placement="right" arrow>
+              <ListItemButton
+                component={NavLink}
+                to="/admin/settings?tab=users"
+                sx={{
+                  ...linkButtonSx,
+                  justifyContent: "center",
+                  minWidth: drawerOpen ? 120 : 40,
+                  px: drawerOpen ? 1 : 0.5,
+                  py: 0.5,
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: drawerOpen ? 28 : "unset",
+                    color: "text.secondary",
+                    justifyContent: "center",
+                  }}
+                >
+                  <SettingsIcon />
+                </ListItemIcon>
+                {drawerOpen && (
+                  <ListItemText
+                    primary="Settings"
+                    primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: 500 }}
+                  />
+                )}
+              </ListItemButton>
+            </Tooltip>
+          )}
+
+          {drawerOpen && (
+            <IconButton size="small" onClick={() => setDrawerOpen(false)}>
+              <ChevronLeftIcon />
+            </IconButton>
+          )}
         </Box>
       </Drawer>
 
@@ -357,31 +443,39 @@ export default function AdminLayout() {
         {/* App bar */}
         <AppBar position="static" elevation={0}>
           <Toolbar variant="dense" sx={{ justifyContent: "flex-end", gap: 1.5 }}>
-            {isRootActive ? (
+            {isSuperuser && (
               <>
-                <Chip
-                  icon={<SecurityIcon />}
-                  label="ROOT MODE ACTIVE"
-                  color="error"
-                  size="small"
-                  variant="filled"
-                  sx={{ fontWeight: 700 }}
-                />
-                <Button size="small" color="error" variant="outlined" onClick={handleDeactivateRoot}>
-                  Deactivate
-                </Button>
+                {isRootActive ? (
+                  <>
+                    <Chip
+                      icon={<SecurityIcon />}
+                      label="ROOT MODE ACTIVE"
+                      color="error"
+                      size="small"
+                      variant="filled"
+                      sx={{ fontWeight: 700 }}
+                    />
+                    <Button size="small" color="error" variant="outlined" onClick={handleDeactivateRoot}>
+                      Deactivate
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="warning"
+                    startIcon={<SecurityIcon />}
+                    onClick={() => setShowRootForm(true)}
+                  >
+                    Activate Root Mode
+                  </Button>
+                )}
               </>
-            ) : (
-              <Button
-                size="small"
-                variant="outlined"
-                color="warning"
-                startIcon={<SecurityIcon />}
-                onClick={() => setShowRootForm(true)}
-              >
-                Activate Root Mode
-              </Button>
             )}
+            <Chip size="small" label={currentUserEmail} />
+            <Button size="small" variant="outlined" onClick={handleLogout}>
+              Logout
+            </Button>
           </Toolbar>
         </AppBar>
 

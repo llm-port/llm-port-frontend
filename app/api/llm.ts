@@ -133,26 +133,11 @@ export interface CreateRuntimePayload {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _devLoginPromise: Promise<void> | null = null;
-
-async function devAutoLogin(): Promise<void> {
-  _devLoginPromise = fetch("/api/auth/dev-login", {
-    method: "POST",
-    credentials: "include",
-  }).then((r) => {
-    if (!r.ok) {
-      _devLoginPromise = null;
-      throw new Error("dev-login failed");
-    }
-  });
-  return _devLoginPromise;
-}
-
 async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  let res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -160,22 +145,6 @@ async function request<T>(
     },
     credentials: "include",
   });
-
-  if (res.status === 401) {
-    try {
-      await devAutoLogin();
-      res = await fetch(`${BASE}${path}`, {
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          ...(init.headers ?? {}),
-        },
-        credentials: "include",
-      });
-    } catch {
-      // dev-login not available
-    }
-  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);

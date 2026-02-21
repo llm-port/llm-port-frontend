@@ -52,12 +52,12 @@ export default function Home() {
         </Typography>
         <Button
           component={RouterLink}
-          to="/admin/containers"
+          to="/login"
           variant="contained"
           size="large"
           sx={{ px: 4, py: 1.2 }}
         >
-          Open Admin Dashboard
+          Sign In
         </Button>
       </Stack>
     </Box>

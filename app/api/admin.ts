@@ -131,27 +131,11 @@ export interface AuditEvent {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-let _devLoginPromise: Promise<void> | null = null;
-
-/** Attempt dev auto-login. Resets the cached promise so a fresh login is always attempted. */
-async function devAutoLogin(): Promise<void> {
-  _devLoginPromise = fetch("/api/auth/dev-login", {
-    method: "POST",
-    credentials: "include",
-  }).then((r) => {
-    if (!r.ok) {
-      _devLoginPromise = null;
-      throw new Error("dev-login failed");
-    }
-  });
-  return _devLoginPromise;
-}
-
 async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
-  let res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -159,23 +143,6 @@ async function request<T>(
     },
     credentials: "include",
   });
-
-  // Auto dev-login on 401 and retry once
-  if (res.status === 401) {
-    try {
-      await devAutoLogin();
-      res = await fetch(`${BASE}${path}`, {
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          ...(init.headers ?? {}),
-        },
-        credentials: "include",
-      });
-    } catch {
-      // dev-login not available — fall through to error
-    }
-  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -404,6 +371,56 @@ export const audit = {
     if (params?.offset !== undefined) qs.set("offset", String(params.offset));
     const q = qs.toString();
     return request<AuditEvent[]>(`/audit/${q ? `?${q}` : ""}`);
+  },
+};
+
+export interface RbacPermission {
+  id: string;
+  resource: string;
+  action: string;
+}
+
+export interface RbacRole {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  permissions: RbacPermission[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  is_verified: boolean;
+  roles: RbacRole[];
+  permissions: RbacPermission[];
+}
+
+export interface MeAccess {
+  id: string;
+  email: string;
+  is_superuser: boolean;
+  roles: RbacRole[];
+  permissions: RbacPermission[];
+}
+
+export const adminUsers = {
+  meAccess() {
+    return request<MeAccess>("/users/me/access");
+  },
+  list() {
+    return request<AdminUser[]>("/users/");
+  },
+  listRoles() {
+    return request<RbacRole[]>("/users/roles");
+  },
+  setUserRoles(userId: string, roleIds: string[]) {
+    return request<AdminUser>(`/users/${userId}/roles`, {
+      method: "PUT",
+      body: JSON.stringify({ role_ids: roleIds }),
+    });
   },
 };
 

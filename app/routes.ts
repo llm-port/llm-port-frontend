@@ -2,6 +2,7 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 
 export default [
   index("routes/home.tsx"),
+  route("/login", "routes/login.tsx"),
   layout("routes/admin.tsx", [
     route("/admin/containers", "pages/admin/ContainersPage.tsx"),
     route("/admin/containers/new", "pages/admin/CreateContainerPage.tsx"),
@@ -10,6 +11,7 @@ export default [
     route("/admin/networks", "pages/admin/NetworksPage.tsx"),
     route("/admin/stacks", "pages/admin/StacksPage.tsx"),
     route("/admin/audit", "pages/admin/AuditLogPage.tsx"),
+    route("/admin/settings", "pages/admin/SettingsPage.tsx"),
     route("/admin/llm/providers", "pages/admin/llm/ProvidersPage.tsx"),
     route("/admin/llm/models", "pages/admin/llm/ModelsPage.tsx"),
     route("/admin/llm/models/:id", "pages/admin/llm/ModelDetailPage.tsx"),
