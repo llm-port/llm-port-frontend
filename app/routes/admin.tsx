@@ -29,6 +29,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 
+import StorageIcon from '@mui/icons-material/Storage';
 import DnsIcon from "@mui/icons-material/Dns";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
@@ -40,7 +41,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import WidgetsIcon from "@mui/icons-material/Widgets";
-import HubIcon from "@mui/icons-material/Hub";
+import LanIcon from '@mui/icons-material/Lan';
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import LlmIcon from "~/components/LlmIcon";
 import ModelTrainingIcon from "@mui/icons-material/ModelTraining";
@@ -79,11 +80,11 @@ const NAV: NavEntry[] = [
   {
     kind: "group",
     label: "Containers",
-    icon: <WidgetsIcon />,
+    icon: <StorageIcon />,
     children: [
       { to: "/admin/containers", label: "Containers", icon: <DnsIcon /> },
       { to: "/admin/images", label: "Images", icon: <ViewInArIcon /> },
-      { to: "/admin/networks", label: "Networks", icon: <HubIcon /> },
+      { to: "/admin/networks", label: "Networks", icon: <LanIcon /> },
       { to: "/admin/stacks", label: "Stacks", icon: <LayersIcon /> },
     ],
   },

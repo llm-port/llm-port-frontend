@@ -245,24 +245,7 @@ export default function DashboardPage() {
         </Box>
       ) : null}
 
-      {health && (
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 1.5 }}>Dependency Health</Typography>
-            <Stack direction="row" gap={1} flexWrap="wrap" useFlexGap>
-              {health.items.map((item) => (
-                <Chip
-                  key={item.name}
-                  label={item.detail ? `${item.name}: ${item.status} (${item.detail})` : `${item.name}: ${item.status}`}
-                  color={healthColor(item.status)}
-                  variant="outlined"
-                  size="small"
-                />
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-      )}
+
       <Card variant="outlined">
         <CardContent>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
@@ -314,6 +297,25 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {health && (
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 1.5 }}>Dependency Health</Typography>
+            <Stack direction="row" gap={1} flexWrap="wrap" useFlexGap>
+              {health.items.map((item) => (
+                <Chip
+                  key={item.name}
+                  label={item.detail ? `${item.name}: ${item.status} (${item.detail})` : `${item.name}: ${item.status}`}
+                  color={healthColor(item.status)}
+                  variant="outlined"
+                  size="small"
+                />
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+      
       {overview && (
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 12, md: 6 }}>
